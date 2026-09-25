@@ -8,7 +8,7 @@ logic (and any future optimization, e.g. eager loading) has one home.
 import uuid
 from typing import List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import UserRole
@@ -31,12 +31,22 @@ async def list_all(session: AsyncSession, skip: int = 0, limit: int = 50) -> Lis
 
 async def count_by_role(session: AsyncSession, role: UserRole) -> int:
     """Used to guard against ever deleting/demoting the last remaining admin."""
-    from sqlalchemy import func
-
     result = await session.execute(
         select(func.count()).select_from(User).where(User.role == role, User.is_active.is_(True))
     )
     return result.scalar_one()
+
+
+async def count_all(session: AsyncSession) -> int:
+    result = await session.execute(select(func.count()).select_from(User))
+    return result.scalar_one()
+
+
+async def count_all_by_role(session: AsyncSession) -> dict[str, int]:
+    """All users (active and inactive) grouped by role - admin stats use, unlike count_by_role above."""
+    stmt = select(User.role, func.count()).group_by(User.role)
+    result = await session.execute(stmt)
+    return {role.value: count for role, count in result.all()}
 
 
 async def create(

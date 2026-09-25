@@ -64,3 +64,44 @@ class InvalidOperationError(AppError):
 
     status_code = status.HTTP_400_BAD_REQUEST
     code = "INVALID_OPERATION"
+
+
+class UnsupportedFileTypeError(AppError):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "UNSUPPORTED_FILE_TYPE"
+
+
+class FileTooLargeError(AppError):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "FILE_TOO_LARGE"
+
+
+class FileValidationError(AppError):
+    """The file's actual content doesn't match its claimed type, or is corrupt/unreadable."""
+
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "FILE_VALIDATION_ERROR"
+
+
+class DocumentPermissionNotFoundError(AppError):
+    status_code = status.HTTP_404_NOT_FOUND
+    code = "DOCUMENT_PERMISSION_NOT_FOUND"
+
+
+class EmbeddingProviderError(AppError):
+    """The embedding provider (external API or misconfiguration) failed."""
+
+    status_code = status.HTTP_502_BAD_GATEWAY
+    code = "EMBEDDING_PROVIDER_ERROR"
+
+
+class LLMProviderError(AppError):
+    """The LLM provider (external API or misconfiguration) failed."""
+
+    status_code = status.HTTP_502_BAD_GATEWAY
+    code = "LLM_PROVIDER_ERROR"
+
+
+class ConversationNotFoundError(AppError):
+    status_code = status.HTTP_404_NOT_FOUND
+    code = "CONVERSATION_NOT_FOUND"

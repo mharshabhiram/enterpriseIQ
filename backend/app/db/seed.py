@@ -20,19 +20,19 @@ from app.security.password import hash_password
 SEED_USERS = [
     {
         "name": "Admin User",
-        "email": "admin@enterpriseiq.local",
+        "email": "admin@enterpriseiq.example",
         "password": "Admin123!",
         "role": UserRole.ADMIN,
     },
     {
         "name": "Manager User",
-        "email": "manager@enterpriseiq.local",
+        "email": "manager@enterpriseiq.example",
         "password": "Manager123!",
         "role": UserRole.MANAGER,
     },
     {
         "name": "Employee User",
-        "email": "employee@enterpriseiq.local",
+        "email": "employee@enterpriseiq.example",
         "password": "Employee123!",
         "role": UserRole.EMPLOYEE,
     },
