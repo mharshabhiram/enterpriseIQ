@@ -1,0 +1,100 @@
+# EnterpriseIQ — fully local stack. No cloud AI services, no API keys.
+#   docker compose up --build
+# First start downloads the Ollama models (several GB, needs internet once).
+
+name: enterpriseiq
+
+x-ollama-models: &ollama-models
+  OLLAMA_LLM_MODEL: ${OLLAMA_LLM_MODEL:-mistral}
+  OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: enterpriseiq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-enterpriseiq}
+      POSTGRES_DB: enterpriseiq
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U enterpriseiq -d enterpriseiq"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama:/root/.ollama          # models persist across restarts
+    ports:
+      - "11434:11434"                 # exposed for local debugging only; remove if not needed
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    # GPU (NVIDIA): uncomment to accelerate inference
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
+
+  # One-shot, idempotent: pulls the configured models, then exits. Already-downloaded models are skipped quickly.
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      <<: *ollama-models
+      OLLAMA_HOST: http://ollama:11434
+    volumes:
+      - ./scripts/pull-models.sh:/pull-models.sh:ro
+    entrypoint: ["/bin/sh", "/pull-models.sh"]
+    restart: "no"
+
+  backend:
+    build: ./backend
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      <<: *ollama-models
+      DATABASE_URL: postgresql+psycopg://enterpriseiq:${POSTGRES_PASSWORD:-enterpriseiq}@postgres:5432/enterpriseiq
+      OLLAMA_BASE_URL: http://ollama:11434
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-only-change-me-please-0123456789}
+      UPLOAD_DIR: /data/uploads
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173
+    volumes:
+      - uploads:/data/uploads
+      - ./sample_documents:/sample_documents:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  ollama:
+  uploads:

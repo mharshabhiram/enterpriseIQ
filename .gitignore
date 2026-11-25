@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+backend/uploads/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Env / secrets
+.env
+backend/.env
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
